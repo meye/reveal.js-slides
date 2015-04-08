@@ -4,7 +4,7 @@
 	<head>
 		<meta charset="utf-8">
 
-		<title>Subversion to Git</title>
+		<title>Git For Translation</title>
 
 		<meta name="description" content="사용중인 Subversion 저장소를 Git으로 옮기는 방법을 단계별로 설명한다.">
 		<meta name="author" content="mEye">
@@ -44,148 +44,152 @@
 			<div class="slides">
                 <section data-background="#555" data-markdown>
                     <script type="text/template">
-## 이제는 Git을 사용해보자!
-#### Subversion 저장소를 Git으로 옮기기
+## 번역을 위한 Git 사용
 
-2014\. 3\. 5
+2015\. 4\. 8
 
 mEye
                     </script>
                 </section>
-                <section data-markdown data-background="#333">
+				<section data-background="#333" data-markdown>
                     <script type="text/template">
-## 순서
+## 필요한 것?
 
-1. 커미터 목록 정리
-2. git-svn으로 Subversion 저장소 가져오기
-3. .gitignore 만들기
-4. Git bare 저장소를 만들기
-5. Subversion 저장소를 새 Git 저장소로 옮기기
-6. 태그 정리
-7. 마무리
+1. 작업 흐름<!-- .element: class="fragment" data-fragment-index="1" -->
+2. 규칙<!-- .element: class="fragment" data-fragment-index="1" -->
+3. ...에 따른 도구 사용법<!-- .element: class="fragment" data-fragment-index="2" -->
                     </script>
                 </section>
-                <section  data-transition="linear">
-                    <section data-markdown>
+                <section data-markdown>
+                    <script type="text/template">
+## 1. 작업 흐름 - Pro Git 번역
+
+- master
+- topic#
+- ko
+- ko-build
+- ko-base
+- private
+                    </script>
+                </section>
+                <section data-markdown>
+                    <script type="text/template">
+## 1. 작업 흐름 - Pro Git 번역 (cont.)
+
+Pro Git 번역 Workflow
+
+<figure>
+	<img src="images/translation-flow.png" alt="Git branch workflow">
+    <figcaption>[#dogfeet - Git:번역 Workflow](http://dogfeet.github.io/articles/2012/git-translate-flow.html)</figcaption>
+</figure>
+                    </script>
+                </section>
+                <section data-markdown>
+                    <script type="text/template">
+## But,
+
+[PHP The Right Way 한국어판](https://github.com/ModernPUG/php-the-right-way)은 저런 Workflow 사용 불가능!
+                    </script>
+                </section>
+                <section>
+					<section data-markdown>
                         <script type="text/template">
-## 커미터 목록 정리 (1/7)
+## 1. 작업 흐름 - 제안 1
 
-Subversion 저장소에서
+ModernPUG/php-the-right-way
 
-```bash
-svn log -q | awk -F '|' '/^r/ {sub("^ ", "", $2); \
-sub(" $", "", $2); \
-print $2" = "$2" <"$2">"}' | sort -u > authors.txt
-```
+> - gh-pages
+
+USERNAME/php-the-right-way (forked)
+
+> - gh-pages
+> - ko-base
+> - upstream-ko -> ModernPUG/php-the-right-way
+> - upstream-en -> codeguy/php-the-right-way
+> - topic#
                         </script>
                     </section>
-                    <section data-markdown>
-                        <script type="text/template">
-### authors.txt
+					<section data-markdown>
+						<script type="text/template">
+## 1. 작업 흐름 - 제안 2
 
-* Before<!-- .element: class="fragment" data-fragment-index="1" -->
-> meye = meye <meye>
-* After<!-- .element: class="fragment" data-fragment-index="2" -->
-> meye = mEye &lt;meye@dev.meye.net&gt;
-                        </script>
-                    </section>
+ModernPUG/php-the-right-way
+
+> - gh-pages
+> - ko-base
+						</script>
+					</section>
                 </section>
-                <section data-markdown data-transition="linear">
-                    <script type="text/template">
-## git-svn (2/7)
-
-git-svn으로 Subversion 저장소 가져오기
+                <section>
+					<section data-markdown>
+                    	<script type="text/template">
+## 1. 작업 흐름 - 해보기
 
 ```bash
-git svn clone [Subversion 저장소 URL] --no-metadata -A authors.txt --stdlayout ~/temp
+(fork)
+git clone git@github.com:USERNAME/php-the-right-way.git
+git remote add upstream-ko https://github.com/ModernPUG/php-the-right-way.git
+git fetch upstream-ko
+git checkout gh-pages
+git merge upstream-ko/gh-pages
 ```
-                    </script>
-                </section>
-                <section data-markdown data-transition="linear">
-                    <script type="text/template">
-## .gitignore 만들기 (3/7)
+                    	</script>
+	                </section>
+					<section data-markdown>
+                    	<script type="text/template">
+## 1. 작업 흐름 - 해보기 (cont.)
 
 ```bash
-cd ~/temp
-git svn show-ignore -i trunk > .gitignore
-git add .gitignore
-git commit -m "svn:ignore 설정을 .gitignore 파일로 변환"
+git checkout --orphan ko-base
+git rm -rf .
+git remote add upstream-en https://github.com/codeguy/php-the-right-way.git
+git fetch upstream-en
+git merge upstream-en/gh-pages
 ```
-                    </script>
-                </section>
-                <section data-markdown data-transition="linear">
-                    <script type="text/template">
-## Git bare 저장소 만들기 (4/7)
+                    	</script>
+	                </section>
+					<section data-markdown>
+                    	<script type="text/template">
+## 1. 작업 흐름 - 해보기 (cont.)
 
 ```bash
-git init --bare ~/new-bare.git
-cd ~/new-bare.git
-git symbolic-ref HEAD refs/heads/trunk
+git checkout gh-pages
+git fetch upstream-ko
+git merge upstream-ko/gh-pages
+
+git checkout ko-base
+git fetch upstream-en
+git merge upstream-en/gh-pages
+
+git diff upstream-en/gh-pages ko-base
 ```
-                    </script>
-                </section>
-                <section data-transition="linear">
-                    <section data-markdown>
-                        <script type="text/template">
-## Subversion 저장소 => 새 Git 저장소 (5/7)
+                    	</script>
+	                </section>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+## 2. 규칙
 
-```bash
-cd ~/temp
-git remote add bare ~/new-bare.git
-git config remote.bare.push 'refs/remotes/*:refs/heads/*'
-git push bare
-```
-                        </script>
-                    </section>
-                    <section data-markdown>
-                        <script type="text/template">
-### 정리
+- 번역시 이슈 생성
+- 번역 검수
+- 머지 정책
+- 등등...
 
-```bash
-rm ~/temp
-```
-                        </script>
-                    </section>
-                    <section data-markdown>
-                        <script type="text/template">
-### master 브랜치
+참고 : [Vim 한글화 일러두기](https://github.com/vim-ko/vim-ko/blob/master/README.mkd)
+					</script>
+				</section>
+				<section data-markdown>
+					<script type="text/template">
+## 3. 익혀야할 것 - Git
 
-```bash
-cd ~/new-bare.git
-git branch -m trunk master
-```
-                        </script>
-                    </section>
-                </section>
-                <section data-markdown data-transition="linear">
-                    <script type="text/template">
-## 태그 정리 (6/7)
+- branch
+- merge
+- pull request
+- 기타...
 
-```bash
-git for-each-ref --format='%(refname)' refs/heads/tags |
-cut -d / -f 4 |
-while read ref
-do
- git tag "$ref" "refs/heads/tags/$ref";
- git branch -D "tags/$ref";
-done
-```
-                    </script>
-                </section>
-                <section data-markdown data-transition="linear">
-                    <script type="text/template">
-## 마무리 (7/7)
-
-끝~ 쉽죠?
-                    </script>
-                </section>
-                <section data-markdown data-transition="linear">
-                    <script type="text/template">
-## 참고
-
-[흔한 개발자 이야기 :: Subversion 저장소를 Git으로 옮기기](http://dev.meye.net/entry/Subversion-저장소를-Git으로-옮기기)
-                    </script>
-                </section>
+참고 : [Git 브랜치 배우기](http://learnbranch.urigit.com/)
+					</script>
+				</section>
                 <!-- <section data-markdown="data.md" data-seperator="^\n\n\n" data-vertical="^\n\n" data-nodes="^Note:" data-charset="utf-8"></section> -->
 
 			</div>
